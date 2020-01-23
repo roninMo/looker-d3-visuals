@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<style>
+
+.node circle {
+  cursor: pointer;
+  stroke-width: 1.25px;
+}
+
+.node text {
+  font: 10px sans-serif;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+line.link {
+  fill: none;
+  stroke: #9ecae1;
+  stroke-width: 1.5px;
+}
+</style>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+</head>
+<body>
+<script src="//d3js.org/d3.v3.min.js"></script>
+      <!-- This version is outdated as heck, and needs to be ported over to a newer version after we figure this out -->
+
+
+
+
+
+
+
+
+
+<script>
+var width = window.innerWidth,
+    height = window.innerHeight,
+    root;
+
+var container = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+let svg = container.append('g')
+    .attr('class', 'everything');
+
+    // Zoom Stuff // 
+let zoom_handler = d3.behavior.zoom()
+    .on('zoom', zoom_actions);
+zoom_handler(container);
+function zoom_actions() {
+  svg.attr("transform", "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")")
+}
+
+var link = svg.selectAll(".link"),
+    node = svg.selectAll(".node");
+
+
+var force = d3.layout.force()
+    .linkDistance(80)
+    .charge(-1200)
+    .gravity(.05)
+    .size([width, height])
+    .on("tick", tick);
+
+
+d3.csv("../data/swimming-stripped.csv", function(error, csv) {
+  // if (error) throw error;
+  console.log('This is the raw csv file!', csv);
+});
+d3.json("../data/_flare.json", function(error, json) {
+  // if (error) throw error;
+  root = json;
+  update();
+});
+
+  // Update the visual's styling based on user interaction
+function update() {
+  console.log('this is root: ', root);
+  var nodes = flatten(root),
+      links = d3.layout.tree().links(nodes);
+  // console.log(`This is the raw data, pulled from a json file`, root); // Root is a normal hierarchy layout!
+  console.log(`This is nodes, which is 'flatten(root)' : `, nodes);
+  console.log(`This is links, which is 'd3.layout.tree().links(nodes)' : `, links); // We usre the flatten layout to create links based on it
+
+  // Restart the force layout.
+  force
+      .nodes(nodes)
+      .links(links)
+      .start();
+
+  // Update links.
+  link = link.data(links, function(d) { return d.target.id; });
+
+  link.exit().remove();
+
+  link.enter().insert("line", ".node")
+      .attr("class", "link");
+
+  // Update nodes.
+  node = node.data(nodes, function(d) { return d.id; });
+
+  node.exit().remove();
+
+  var nodeEnter = node.enter().append("g")
+      .attr("class", "node")
+      .on("click", click)
+      .call(force.drag);
+
+  nodeEnter.append("circle")
+      .attr('stroke', border)
+      .attr("r", function(d) { return (Math.sqrt(d.size) / 5) + 10 || 20; });
+
+  nodeEnter.append("text")
+      .attr("dy", ".35em")
+      .text(function(d) { return d.name; });
+
+  node.select("circle")
+      .style("fill", color);
+}
+
+
+  /* Functions section */
+
+  // Simulation physics
+function tick() {
+  link.attr("x1", function(d) { return d.source.x; })
+      .attr("y1", function(d) { return d.source.y; })
+      .attr("x2", function(d) { return d.target.x; })
+      .attr("y2", function(d) { return d.target.y; });
+
+  node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+}
+  // Some styling functions for the circles
+function color(d) {
+  return d._children ? "#999999" // collapsed package => or try: "#3182db"
+      : d.children ? "#fd8d3c" // expanded package => or try: "#c6dbef"
+      : "#008CCD"; // leaf node => or try: "#FEBF43"
+}
+function border(d) {
+  return d._children ? "#fd8d3c" // collapsed node
+    : d.children ? "#008CCD" // expanded node
+    : "#fd8d3c" // leaf node
+}
+  // Toggle children on click.
+function click(d) {
+  if (d3.event.defaultPrevented) return; // ignore drag
+  if (d.children) {
+    d._children = d.children;
+    d.children = null;
+  } else {
+    d.children = d._children;
+    d._children = null;
+  }
+  update();
+}
+// Returns a list of all nodes under the root. => Stratified datum
+function flatten(root) {
+  var nodes = [], i = 0;
+
+  function recurse(node) {
+    if (node.children) node.children.forEach(recurse);
+    if (!node.id) node.id = ++i;
+    nodes.push(node);
+  }
+
+  recurse(root);
+  return nodes;
+}
+
+</script>
+</body>
+</html>

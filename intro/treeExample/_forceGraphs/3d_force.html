@@ -1,0 +1,138 @@
+<!DOCTYPE html> <html lang="en">
+        <style>
+html, body { margin: 0; padding: 0;}
+text { font: 10px sans-serif; /**/ pointer-events: none; /**/ text-anchor: middle; /**/ text-shadow: -1px -1px 3px white, -1px  1px 3px white, 1px -1px 3px white, 1px  1px 3px white;}
+body { text-align: center; font-family: Sans-serif; margin: 0; }
+.dimensions-selector, .graph-data { position: absolute; top: 0; padding: 5px; color: slategrey; } 
+.dimensions-selector { left: 0; }
+.graph-data { right: 0; }
+.toggle-data-btn { cursor: pointer; opacity: 0.85; }
+.toggle-data-btn:hover { opacity: 1; }
+#graph-data-description { font-size: 12px; color: slategrey; }
+        </style>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>D3 3d force graph</title>
+  <!-- <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js"></script>  -->
+
+  <!-- <script src="//unpkg.com/3d-force-graph@1"></script> Newer version we're using!
+  <script src="//unpkg.com/d3-dsv"></script>
+  <script src="data-set-loader.js"></script> -->
+
+  <script src="//unpkg.com/three"></script>
+  <script src="//unpkg.com/three-spritetext"></script>
+
+  <script src="//unpkg.com/3d-force-graph"></script>
+  <!--<script src="../../dist/3d-force-graph.js"></script>-->
+</head>
+<body>
+    <div id="3d-graph"></div>
+
+    <div class="dimensions-selector">
+        Dimensions:
+        <input type="radio" name="num-dimensions" onChange="toggleDimensions(1)"> 1D
+        <input type="radio" name="num-dimensions" onChange="toggleDimensions(2)" checked> 2D
+        <input type="radio" name="num-dimensions" onChange="toggleDimensions(3)"> 3D
+    </div>
+    <div class="graph-data">
+        <span id="graph-data-description"></span>
+        <button class="toggle-data-btn" onClick="toggleData()">Show me something else</button>
+    </div>
+
+
+    <script>
+    // Random tree
+const N = 10;
+const gData = {
+  nodes: [...Array(N).keys()].map(i => ({ id: i })),
+  links: [...Array(N).keys()]
+    .filter(id => id)
+    .map(id => ({
+      source: id,
+      target: Math.round(Math.random() * (id-1))
+    }))
+};
+console.log('nodes: ', gData.nodes);
+console.log('links: ', gData.links);
+
+let changed = 5;
+
+const elem = document.getElementById('3d-graph')
+const Graph = ForceGraph3D(/*{ controlType: 'fly' }*/)
+(elem)(document.getElementById('3d-graph'))
+  .graphData(gData) // Pass in the graph data
+  .nodeLabel('id') // This is the name when you hover over the label
+  .nodeAutoColorBy('id') // Pass in a value for the table to give a unique color for each unique value of that set of data
+  .linkOpacity(0.34) // Makes the links transparent
+  
+  Graph.d3Force('charge').strength(-120) // This spaces the nodes out more
+
+    
+  // Graph // This section makes the nodes text instead of circles
+  //   .nodeThreeObject(node => { // This is to create the nodes as text instead of nodes!
+  //       // use a sphere as a drag handle
+  //     const obj = new THREE.Mesh(
+  //       new THREE.SphereGeometry(10),
+  //       new THREE.MeshBasicMaterial({ depthWrite: false, transparent: true, opacity: 0 })
+  //     );
+  //       // add text sprite as child
+  //     const sprite = new SpriteText(node.id);
+  //     sprite.color = node.color;
+  //     sprite.textHeight = 5;
+  //     obj.add(sprite);
+  //     return obj;
+  //   });
+
+    
+  Graph // This add the link arrows, and then a curve to the links
+    .linkDirectionalArrowLength(link => changed) // The length of the arrow
+    .linkDirectionalArrowRelPos(.125)
+    .linkCurvature(.25);
+  
+     
+  Graph // This is the link directional particle values: You can enter any particle value based on the data given 
+    .linkDirectionalParticles(link => 5)
+    .linkDirectionalParticleWidth(.64)
+  
+
+  Graph // Code for when you move the camera to the selected node 
+    .onNodeHover(node => {
+      elem.style.cursor = node ? 'pointer' : null;
+      changed = 10;
+      runChange();
+    })  // Changes cursor to pointer on hover
+    .onNodeClick(node => { // Moves camera to clicked node
+      const distance = 40;
+      const distRatio = 3 + distance/Math.hypot(node.x, node.y, node.z);
+      Graph.cameraPosition(
+        { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
+        node, // lookAt ({ x, y, z })
+        1400  // ms transition duration
+      );
+    });
+
+  
+
+
+
+
+
+  function runChange() {
+    Graph
+      .linkDirectionalArrowLength(Graph.linkDirectionalArrowLength());
+  }
+
+
+
+
+
+
+
+
+
+    </script>
+
+    </body>
+</html>

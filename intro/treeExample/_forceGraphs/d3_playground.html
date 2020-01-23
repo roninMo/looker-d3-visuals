@@ -1,0 +1,187 @@
+<!DOCTYPE html> <html lang="en">
+        <style>
+html, body { margin: 0; padding: 0;}
+text { font: 10px sans-serif; /**/ pointer-events: none; /**/ text-anchor: middle; /**/ text-shadow: -1px -1px 3px white, -1px  1px 3px white, 1px -1px 3px white, 1px  1px 3px white;}
+body { text-align: center; font-family: Sans-serif; margin: 0; }
+.dimensions-selector, .graph-data { position: absolute; top: 0; padding: 5px; color: slategrey; } 
+.dimensions-selector { left: 0; }
+.graph-data { right: 0; }
+.toggle-data-btn { cursor: pointer; opacity: 0.85; }
+.toggle-data-btn:hover { opacity: 1; }
+#graph-data-description { font-size: 12px; color: slategrey; }
+        </style>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>D3 3d force graph</title>
+  <!-- <script src="https://unpkg.com/d3@5.6.0/dist/d3.min.js"></script>  -->
+
+  <!-- <script src="//unpkg.com/3d-force-graph@1"></script> Newer version we're using!
+  <script src="//unpkg.com/d3-dsv"></script>
+  <script src="data-set-loader.js"></script> -->
+
+  <script src="//unpkg.com/three"></script>
+  <script src="//unpkg.com/three-spritetext"></script>
+
+  <script src="//unpkg.com/3d-force-graph"></script>
+  <!--<script src="../../dist/3d-force-graph.js"></script>-->
+</head>
+<body>
+    <div id="3d-graph"></div>
+
+    <div class="dimensions-selector">
+        Dimensions:
+        <input type="radio" name="num-dimensions" onChange="toggleDimensions(1)"> 1D
+        <input type="radio" name="num-dimensions" onChange="toggleDimensions(2)" checked> 2D
+        <input type="radio" name="num-dimensions" onChange="toggleDimensions(3)"> 3D
+    </div>
+    <div class="graph-data">
+        <span id="graph-data-description"></span>
+        <button class="toggle-data-btn" onClick="toggleData()">Show me something else</button>
+    </div>
+
+
+    <!-- <script>
+    // Random tree
+const N = 10;
+const gData = {
+  nodes: [...Array(N).keys()].map(i => ({ id: i })),
+  links: [...Array(N).keys()]
+    .filter(id => id)
+    .map(id => ({
+      source: id,
+      target: Math.round(Math.random() * (id-1))
+    }))
+};
+console.log('nodes: ', gData.nodes);
+console.log('links: ', gData.links);
+
+
+
+let highlightNodes = [];
+let unhlt = null;
+let highlightLink = null;
+const elem = document.getElementById('3d-graph')
+const Graph = ForceGraph3D()
+(elem)(document.getElementById('3d-graph'))
+        .graphData(gData)
+        .nodeLabel('id') // This is the name when you hover over the label
+        .linkOpacity(.34)
+        // .nodeAutoColorBy('id')
+        .nodeColor(node => highlightNodes.indexOf(node) === -1 ? 'rgba(0,255,255,0.6)' : 'rgb(255,0,0,1)')
+        .linkWidth(link => link === highlightLink ? 4 : 1)
+        .linkDirectionalParticles(link => link === highlightLink ? 4 : 1)
+        .linkDirectionalParticleWidth(link => link === highlightLink ? 1.2 : .64)
+        .linkDirectionalArrowLength(link => {
+            return link === highlightLink ? 10
+            : highlightNodes.indexOf(link.source) != -1 ? 10
+            : 4
+        }) // The length of the arrow
+        .linkDirectionalArrowRelPos(.125)
+        .linkCurvature(.05)
+        .onNodeHover(node => {
+            elem.style.cursor = node ? 'pointer' : null;    // no state change
+            if ((!node && !highlightNodes.length) || (highlightNodes.length === 1 && highlightNodes[0] === node)) return;
+            highlightNodes = node ? [node] : [];
+
+            updateHighlight();
+        })
+        .onLinkHover(link => {
+          if (highlightLink === link) return;   // no state change
+          highlightLink = link;
+          console.log('link', link);
+          console.log('Current highlight nodes', highlightNodes);
+          highlightNodes = link ? [link.source, link.target] : [];
+          updateHighlight();
+        })
+        .onNodeClick(node => { // Moves camera to clicked node
+            const distance = 40;
+            const distRatio = 3 + distance/Math.hypot(node.x, node.y, node.z);
+            Graph.cameraPosition(
+                { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
+                node, // lookAt ({ x, y, z })
+                1400  // ms transition duration
+            );
+        });
+
+    // Graph.d3Force('charge').strength(-120);
+
+
+
+
+
+    function updateHighlight() {
+      // trigger update of highlighted objects in scene
+      Graph
+        .nodeColor(Graph.nodeColor())
+        .linkWidth(Graph.linkWidth())
+        .linkDirectionalParticles(Graph.linkDirectionalParticles())
+        .linkDirectionalArrowLength(Graph.linkDirectionalArrowLength());
+    }
+        </!--> -->
+
+
+<script>
+    const initData = {
+      nodes: [ {id: 0 } ],
+      links: []
+    };
+    const elem = document.getElementById("3d-graph");
+    const Graph = ForceGraph3D()(elem)
+        .enableNodeDrag(false)
+        .onNodeHover(node => elem.style.cursor = node ? 'pointer' : null)
+        .onNodeClick(removeNode)
+        .graphData(initData);
+    setInterval(() => {
+      const { nodes, links } = Graph.graphData();
+      const id = nodes.length;
+      Graph.graphData({
+        nodes: [...nodes, { id }],
+        links: [...links, { source: id, target: Math.round(Math.random() * (id-1)) }]
+      });
+    }, 1000);
+    //
+    function removeNode(node) {
+      let { nodes, links } = Graph.graphData();
+      links = links.filter(l => l.source !== node && l.target !== node); // Remove links attached to node
+      nodes.splice(node.id, 1); // Remove node
+      nodes.forEach((n, idx) => { n.id = idx; }); // Reset node ids to array index
+      Graph.graphData({ nodes, links });
+    }
+  </script>
+
+
+<!--        If you wanna add more nodes into the graph, or figure out how to implement/delete nodes here's a good example
+      <script>
+    const initData = {
+      nodes: [ {id: 0 } ],
+      links: []
+    };
+    const elem = document.getElementById("3d-graph");
+    const Graph = ForceGraph3D()(elem)
+        .enableNodeDrag(false)
+        .onNodeHover(node => elem.style.cursor = node ? 'pointer' : null)
+        .onNodeClick(removeNode)
+        .graphData(initData);
+    setInterval(() => {
+      const { nodes, links } = Graph.graphData();
+      const id = nodes.length;
+      Graph.graphData({
+        nodes: [...nodes, { id }],
+        links: [...links, { source: id, target: Math.round(Math.random() * (id-1)) }]
+      });
+    }, 1000);
+    //
+    function removeNode(node) {
+      let { nodes, links } = Graph.graphData();
+      links = links.filter(l => l.source !== node && l.target !== node); // Remove links attached to node
+      nodes.splice(node.id, 1); // Remove node
+      nodes.forEach((n, idx) => { n.id = idx; }); // Reset node ids to array index
+      Graph.graphData({ nodes, links });
+    }
+  </script> 
+ -->
+
+    </body>
+</html>
